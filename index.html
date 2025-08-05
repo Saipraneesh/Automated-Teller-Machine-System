@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure ATM Banking System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .atm-screen {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+        .keypad-btn {
+            transition: all 0.2s;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .keypad-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1);
+        }
+        .receipt {
+            background: repeating-linear-gradient(
+                #f8f8f8,
+                #f8f8f8 20px,
+                #e0e0e0 20px,
+                #e0e0e0 21px
+            );
+        }
+        .card-slot::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                90deg,
+                transparent,
+                transparent 10px,
+                rgba(0, 0, 0, 0.1) 10px,
+                rgba(0, 0, 0, 0.1) 12px
+            );
+        }
+        .cash-dispenser {
+            background: repeating-linear-gradient(
+                #e0e0e0,
+                #e0e0e0 10px,
+                #d0d0d0 10px,
+                #d0d0d0 11px
+            );
+        }
+    </style>
+</head>
+<body class="bg-gray-900 min-h-screen flex items-center justify-center p-4">
+    <div class="relative w-full max-w-3xl">
+        <!-- ATM Machine Body -->
+        <div class="bg-gray-700 rounded-2xl shadow-2xl overflow-hidden">
+            <!-- ATM Top Section -->
+            <div class="bg-gray-800 p-6 flex items-center">
+                <div class="flex-1">
+                    <div class="text-white font-bold text-xl flex items-center">
+                        <i class="fas fa-university mr-2 text-blue-300"></i>
+                        <span>Global Trust Bank</span>
+                    </div>
+                    <div class="text-gray-400 text-sm">24/7 Banking Services</div>
+                </div>
+                <div class="text-white text-right">
+                    <div class="text-sm">ATM ID: GTB-ATM-042</div>
+                    <div class="text-xs text-gray-400">Secure Connection <i class="fas fa-lock text-green-400 ml-1"></i></div>
+                </div>
+            </div>
+            
+            <!-- ATM Main Section -->
+            <div class="flex flex-col md:flex-row">
+                <!-- Screen and Keypad -->
+                <div class="flex-1 p-6">
+                    <!-- ATM Screen -->
+                    <div class="atm-screen rounded-lg p-6 mb-6 h-64 text-white relative overflow-hidden">
+                        <div id="welcome-screen" class="h-full flex flex-col justify-center items-center text-center">
+                            <i class="fas fa-credit-card text-4xl mb-4 text-blue-200"></i>
+                            <h2 class="text-2xl font-bold mb-2">Welcome to Global Trust Bank</h2>
+                            <p class="text-blue-100">Please insert your card to begin</p>
+                        </div>
+                        
+                        <div id="pin-screen" class="h-full hidden flex-col">
+                            <div class="mb-4">
+                                <h3 class="text-lg font-semibold mb-2">Enter your PIN</h3>
+                                <div class="flex justify-center mb-2">
+                                    <div class="flex space-x-4">
+                                        <div class="w-4 h-4 rounded-full border-2 border-white pin-dot"></div>
+                                        <div class="w-4 h-4 rounded-full border-2 border-white pin-dot"></div>
+                                        <div class="w-4 h-4 rounded-full border-2 border-white pin-dot"></div>
+                                        <div class="w-4 h-4 rounded-full border-2 border-white pin-dot"></div>
+                                    </div>
+                                </div>
+                                <p class="text-red-300 text-sm hidden" id="pin-error">Incorrect PIN. Please try again.</p>
+                            </div>
+                            <div class="mt-auto">
+                                <div class="flex justify-between text-sm">
+                                    <button class="text-blue-200 hover:text-blue-100" onclick="cancelTransaction()">
+                                        <i class="fas fa-times mr-1"></i> Cancel
+                                    </button>
+                                    <button class="text-blue-200 hover:text-blue-100" onclick="clearPin()">
+                                        <i class="fas fa-backspace mr-1"></i> Clear
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div id="main-menu" class="h-full hidden flex-col">
+                            <h3 class="text-lg font-semibold mb-4">Select Transaction</h3>
+                            <div class="grid grid-cols-2 gap-3">
+                                <button class="bg-blue-600 bg-opacity-30 hover:bg-opacity-50 rounded-lg p-3 text-left" onclick="selectTransaction('withdraw')">
+                                    <i class="fas fa-money-bill-wave mr-2"></i> Withdraw Cash
+                                </button>
+                                <button class="bg-blue-600 bg-opacity-30 hover:bg-opacity-50 rounded-lg p-3 text-left" onclick="selectTransaction('balance')">
+                                    <i class="fas fa-wallet mr-2"></i> Balance Inquiry
+                                </button>
+                                <button class="bg-blue-600 bg-opacity-30 hover:bg-opacity-50 rounded-lg p-3 text-left" onclick="selectTransaction('deposit')">
+                                    <i class="fas fa-money-bill-alt mr-2"></i> Deposit Funds
+                                </button>
+                                <button class="bg-blue-600 bg-opacity-30 hover:bg-opacity-50 rounded-lg p-3 text-left" onclick="selectTransaction('transfer')">
+                                    <i class="fas fa-exchange-alt mr-2"></i> Transfer Funds
+                                </button>
+                            </div>
+                            <div class="mt-auto pt-3 border-t border-blue-400 border-opacity-30">
+                                <button class="text-blue-200 hover:text-blue-100 text-sm" onclick="cancelTransaction()">
+                                    <i class="fas fa-sign-out-alt mr-1"></i> Exit
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div id="withdraw-screen" class="h-full hidden flex-col">
+                            <h3 class="text-lg font-semibold mb-4">Withdraw Cash</h3>
+                            <div class="grid grid-cols-2 gap-3 mb-4">
+                                <button class="bg-blue-600 bg-opacity-30 hover:bg-opacity-50 rounded-lg p-3" onclick="setAmount(20)">$20</button>
+                                <button class="bg-blue-600 bg-opacity-30 hover:bg-opacity-50 rounded-lg p-3" onclick="setAmount(50)">$50</button>
+                                <button class="bg-blue-600 bg-opacity-30 hover:bg-opacity-50 rounded-lg p-3" onclick="setAmount(100)">$100</button>
+                                <button class="bg-blue-600 bg-opacity-30 hover:bg-opacity-50 rounded-lg p-3" onclick="setAmount(200)">$200</button>
+                            </div>
+                            <div class="mb-4">
+                                <label class="block text-sm mb-1">Or enter custom amount:</label>
+                                <div class="flex">
+                                    <span class="bg-blue-900 bg-opacity-50 px-3 py-2 rounded-l-lg">$</span>
+                                    <input type="number" id="custom-amount" class="bg-blue-900 bg-opacity-50 px-3 py-2 flex-1 rounded-r-lg outline-none" placeholder="0.00">
+                                </div>
+                            </div>
+                            <div class="mt-auto flex justify-between">
+                                <button class="text-blue-200 hover:text-blue-100" onclick="goToMainMenu()">
+                                    <i class="fas fa-arrow-left mr-1"></i> Back
+                                </button>
+                                <button class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg" onclick="processWithdrawal()">
+                                    Confirm <i class="fas fa-check ml-1"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div id="balance-screen" class="h-full hidden flex-col">
+                            <h3 class="text-lg font-semibold mb-4">Account Balance</h3>
+                            <div class="bg-blue-900 bg-opacity-30 rounded-lg p-4 mb-4">
+                                <div class="flex justify-between mb-2">
+                                    <span>Available Balance:</span>
+                                    <span class="font-bold">$<span id="available-balance">1,245.67</span></span>
+                                </div>
+                                <div class="flex justify-between text-sm text-blue-200">
+                                    <span>Account:</span>
+                                    <span>****-****-****-<span id="last-four">7890</span></span>
+                                </div>
+                            </div>
+                            <div class="mt-auto flex justify-between">
+                                <button class="text-blue-200 hover:text-blue-100" onclick="printReceipt('balance')">
+                                    <i class="fas fa-print mr-1"></i> Print Receipt
+                                </button>
+                                <button class="text-blue-200 hover:text-blue-100" onclick="goToMainMenu()">
+                                    <i class="fas fa-home mr-1"></i> Main Menu
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div id="receipt-screen" class="h-full hidden flex-col">
+                            <h3 class="text-lg font-semibold mb-4">Transaction Complete</h3>
+                            <div class="bg-blue-900 bg-opacity-30 rounded-lg p-4 mb-4">
+                                <div id="receipt-content" class="text-sm">
+                                    <!-- Receipt content will be inserted here -->
+                                </div>
+                            </div>
+                            <div class="mt-auto flex justify-between">
+                                <button class="text-blue-200 hover:text-blue-100" onclick="printReceipt()">
+                                    <i class="fas fa-print mr-1"></i> Print Again
+                                </button>
+                                <button class="text-blue-200 hover:text-blue-100" onclick="endSession()">
+                                    <i class="fas fa-sign-out-alt mr-1"></i> Finish
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Keypad -->
+                    <div class="grid grid-cols-3 gap-3">
+                        <button class="keypad-btn bg-gray-600 hover:bg-gray-500 text-white font-bold py-4 rounded-lg" onclick="appendToPin(1)">1</button>
+                        <button class="keypad-btn bg-gray-600 hover:bg-gray-500 text-white font-bold py-4 rounded-lg" onclick="appendToPin(2)">2</button>
+                        <button class="keypad-btn bg-gray-600 hover:bg-gray-500 text-white font-bold py-4 rounded-lg" onclick="appendToPin(3)">3</button>
+                        <button class="keypad-btn bg-gray-600 hover:bg-gray-500 text-white font-bold py-4 rounded-lg" onclick="appendToPin(4)">4</button>
+                        <button class="keypad-btn bg-gray-600 hover:bg-gray-500 text-white font-bold py-4 rounded-lg" onclick="appendToPin(5)">5</button>
+                        <button class="keypad-btn bg-gray-600 hover:bg-gray-500 text-white font-bold py-4 rounded-lg" onclick="appendToPin(6)">6</button>
+                        <button class="keypad-btn bg-gray-600 hover:bg-gray-500 text-white font-bold py-4 rounded-lg" onclick="appendToPin(7)">7</button>
+                        <button class="keypad-btn bg-gray-600 hover:bg-gray-500 text-white font-bold py-4 rounded-lg" onclick="appendToPin(8)">8</button>
+                        <button class="keypad-btn bg-gray-600 hover:bg-gray-500 text-white font-bold py-4 rounded-lg" onclick="appendToPin(9)">9</button>
+                        <button class="keypad-btn bg-gray-600 hover:bg-gray-500 text-white font-bold py-4 rounded-lg" onclick="appendToPin(0)">0</button>
+                        <button class="keypad-btn bg-gray-600 hover:bg-gray-500 text-white font-bold py-4 rounded-lg" onclick="clearPin()">
+                            <i class="fas fa-backspace"></i>
+                        </button>
+                        <button class="keypad-btn bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-lg" onclick="submitPin()">
+                            <i class="fas fa-check"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- ATM Right Section -->
+                <div class="w-48 bg-gray-800 p-4 flex flex-col">
+                    <!-- Card Slot -->
+                    <div class="card-slot bg-gray-900 rounded-lg p-3 mb-6 relative overflow-hidden h-12 flex items-center justify-center">
+                        <button id="insert-card-btn" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-1 rounded-lg text-sm" onclick="insertCard()">
+                            Insert Card <i class="fas fa-arrow-right ml-1"></i>
+                        </button>
+                        <div id="card-eject-btn" class="hidden">
+                            <button class="bg-red-600 hover:bg-red-500 text-white px-4 py-1 rounded-lg text-sm" onclick="ejectCard()">
+                                Eject Card <i class="fas fa-eject ml-1"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Cash Dispenser -->
+                    <div class="cash-dispenser flex-1 rounded-lg mb-6 p-3 flex flex-col">
+                        <div class="text-white text-center mb-2">Cash Dispenser</div>
+                        <div id="dispensed-cash" class="hidden flex-1 flex-col justify-center items-center">
+                            <i class="fas fa-money-bill-wave text-4xl text-green-400 mb-2"></i>
+                            <div class="text-white font-bold text-center">$<span id="dispensed-amount">0</span></div>
+                            <div class="text-xs text-gray-300 mt-2">Please take your cash</div>
+                        </div>
+                        <div id="no-cash" class="flex-1 flex items-center justify-center text-gray-400 text-sm text-center">
+                            Cash will appear here after withdrawal
+                        </div>
+                    </div>
+                    
+                    <!-- Receipt Printer -->
+                    <div class="receipt bg-white rounded-lg p-3 h-24">
+                        <div class="text-gray-800 text-center text-sm mb-1">Receipt</div>
+                        <div id="receipt-paper" class="text-xs text-gray-800 overflow-hidden h-16 hidden">
+                            <!-- Receipt content will be inserted here -->
+                        </div>
+                        <div id="no-receipt" class="text-gray-400 text-xs text-center h-16 flex items-center justify-center">
+                            Your receipt will print here
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- ATM Bottom Section -->
+            <div class="bg-gray-800 p-4 text-center text-gray-400 text-sm">
+                <div class="flex justify-center space-x-6">
+                    <div><i class="fas fa-shield-alt mr-1"></i> Secure Banking</div>
+                    <div><i class="fas fa-phone-alt mr-1"></i> 24/7 Customer Support</div>
+                    <div><i class="fas fa-info-circle mr-1"></i> FDIC Insured</div>
+                </div>
+                <div class="mt-2">For assistance, call 1-800-GTB-HELP</div>
+            </div>
+        </div>
+        
+        <!-- Bank Card (for demo purposes) -->
+        <div id="bank-card" class="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-full bg-blue-900 rounded-lg w-64 h-40 p-4 shadow-lg text-white hidden">
+            <div class="flex justify-between items-start mb-6">
+                <div class="text-xl font-bold">Global Trust</div>
+                <div class="text-sm bg-yellow-400 text-yellow-900 px-2 py-1 rounded">VISA</div>
+            </div>
+            <div class="text-lg mb-1">**** **** **** <span class="tracking-wider">7890</span></div>
+            <div class="flex justify-between text-sm">
+                <div>VALID THRU 12/25</div>
+                <div>John D. Cardholder</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ATM State
+        let atmState = {
+            cardInserted: false,
+            pinAttempts: 0,
+            currentPin: '',
+            correctPin: '1234',
+            accountBalance: 1245.67,
+            lastFourDigits: '7890',
+            currentScreen: 'welcome',
+            transactionInProgress: false,
+            transactionType: null,
+            transactionAmount: 0
+        };
+        
+        // DOM Elements
+        const welcomeScreen = document.getElementById('welcome-screen');
+        const pinScreen = document.getElementById('pin-screen');
+        const mainMenu = document.getElementById('main-menu');
+        const withdrawScreen = document.getElementById('withdraw-screen');
+        const balanceScreen = document.getElementById('balance-screen');
+        const receiptScreen = document.getElementById('receipt-screen');
+        const pinDots = document.querySelectorAll('.pin-dot');
+        const pinError = document.getElementById('pin-error');
+        const insertCardBtn = document.getElementById('insert-card-btn');
+        const cardEjectBtn = document.getElementById('card-eject-btn');
+        const bankCard = document.getElementById('bank-card');
+        const dispensedCash = document.getElementById('dispensed-cash');
+        const noCash = document.getElementById('no-cash');
+        const dispensedAmount = document.getElementById('dispensed-amount');
+        const receiptPaper = document.getElementById('receipt-paper');
+        const noReceipt = document.getElementById('no-receipt');
+        const customAmount = document.getElementById('custom-amount');
+        const availableBalance = document.getElementById('available-balance');
+        const lastFour = document.getElementById('last-four');
+        const receiptContent = document.getElementById('receipt-content');
+        
+        // Animation function for card insertion
+        function insertCard() {
+            if (atmState.cardInserted) return;
+            
+            // Show card animation
+            bankCard.classList.remove('hidden');
+            bankCard.style.transition = 'transform 1s ease-in-out';
+            bankCard.style.transform = 'translate(-50%, 70px)';
+            
+            setTimeout(() => {
+                insertCardBtn.classList.add('hidden');
+                cardEjectBtn.classList.remove('hidden');
+                atmState.cardInserted = true;
+                showPinScreen();
+                
+                // Hide card (it's "inside" the ATM now)
+                setTimeout(() => {
+                    bankCard.classList.add('hidden');
+                }, 500);
+            }, 1000);
+        }
+        
+        // Eject card function
+        function ejectCard() {
+            if (!atmState.cardInserted) return;
+            
+            // Show card animation
+            bankCard.classList.remove('hidden');
+            bankCard.style.transition = 'transform 1s ease-in-out';
+            bankCard.style.transform = 'translate(-50%, -100%)';
+            
+            setTimeout(() => {
+                insertCardBtn.classList.remove('hidden');
+                cardEjectBtn.classList.add('hidden');
+                atmState.cardInserted = false;
+                showWelcomeScreen();
+                resetATMState();
+                
+                // Hide card after animation
+                setTimeout(() => {
+                    bankCard.classList.add('hidden');
+                }, 1000);
+            }, 1000);
+        }
+        
+        // Show welcome screen
+        function showWelcomeScreen() {
+            hideAllScreens();
+            welcomeScreen.classList.remove('hidden');
+            atmState.currentScreen = 'welcome';
+        }
+        
+        // Show PIN screen
+        function showPinScreen() {
+            hideAllScreens();
+            pinScreen.classList.remove('hidden');
+            atmState.currentScreen = 'pin';
+            resetPinInput();
+        }
+        
+        // Show main menu
+        function showMainMenu() {
+            hideAllScreens();
+            mainMenu.classList.remove('hidden');
+            atmState.currentScreen = 'main-menu';
+        }
+        
+        // Show withdraw screen
+        function showWithdrawScreen() {
+            hideAllScreens();
+            withdrawScreen.classList.remove('hidden');
+            atmState.currentScreen = 'withdraw';
+            customAmount.value = '';
+        }
+        
+        // Show balance screen
+        function showBalanceScreen() {
+            hideAllScreens();
+            balanceScreen.classList.remove('hidden');
+            atmState.currentScreen = 'balance';
+            availableBalance.textContent = atmState.accountBalance.toFixed(2);
+            lastFour.textContent = atmState.lastFourDigits;
+        }
+        
+        // Show receipt screen
+        function showReceiptScreen() {
+            hideAllScreens();
+            receiptScreen.classList.remove('hidden');
+            atmState.currentScreen = 'receipt';
+        }
+        
+        // Hide all screens
+        function hideAllScreens() {
+            welcomeScreen.classList.add('hidden');
+            pinScreen.classList.add('hidden');
+            mainMenu.classList.add('hidden');
+            withdrawScreen.classList.add('hidden');
+            balanceScreen.classList.add('hidden');
+            receiptScreen.classList.add('hidden');
+        }
+        
+        // Reset ATM state
+        function resetATMState() {
+            atmState.pinAttempts = 0;
+            atmState.currentPin = '';
+            atmState.transactionInProgress = false;
+            atmState.transactionType = null;
+            atmState.transactionAmount = 0;
+            resetPinInput();
+        }
+        
+        // Reset PIN input
+        function resetPinInput() {
+            atmState.currentPin = '';
+            pinDots.forEach(dot => {
+                dot.classList.remove('bg-white');
+                dot.classList.add('border-2');
+            });
+            pinError.classList.add('hidden');
+        }
+        
+        // Append to PIN
+        function appendToPin(number) {
+            if (atmState.currentScreen !== 'pin' || atmState.currentPin.length >= 4) return;
+            
+            atmState.currentPin += number;
+            updatePinDots();
+        }
+        
+        // Update PIN dots
+        function updatePinDots() {
+            pinDots.forEach((dot, index) => {
+                if (index < atmState.currentPin.length) {
+                    dot.classList.add('bg-white');
+                    dot.classList.remove('border-2');
+                } else {
+                    dot.classList.remove('bg-white');
+                    dot.classList.add('border-2');
+                }
+            });
+        }
+        
+        // Clear PIN
+        function clearPin() {
+            if (atmState.currentScreen !== 'pin') return;
+            resetPinInput();
+        }
+        
+        // Submit PIN
+        function submitPin() {
+            if (atmState.currentScreen !== 'pin') return;
+            
+            if (atmState.currentPin === atmState.correctPin) {
+                showMainMenu();
+                resetPinInput();
+            } else {
+                atmState.pinAttempts++;
+                pinError.classList.remove('hidden');
+                resetPinInput();
+                
+                if (atmState.pinAttempts >= 3) {
+                    setTimeout(() => {
+                        alert('Too many incorrect attempts. Your card has been retained for security reasons.');
+                        ejectCard();
+                    }, 500);
+                }
+            }
+        }
+        
+        // Cancel transaction
+        function cancelTransaction() {
+            if (atmState.currentScreen === 'pin') {
+                ejectCard();
+            } else if (atmState.currentScreen === 'main-menu' || atmState.currentScreen.includes('withdraw|balance|deposit|transfer')) {
+                showMainMenu();
+            }
+        }
+        
+        // Select transaction type
+        function selectTransaction(type) {
+            atmState.transactionType = type;
+            
+            switch(type) {
+                case 'withdraw':
+                    showWithdrawScreen();
+                    break;
+                case 'balance':
+                    showBalanceScreen();
+                    break;
+                case 'deposit':
+                    // In a real implementation, this would connect to a deposit mechanism
+                    alert('Deposit functionality would be implemented here');
+                    break;
+                case 'transfer':
+                    // In a real implementation, this would allow transferring to another account
+                    alert('Transfer functionality would be implemented here');
+                    break;
+            }
+        }
+        
+        // Set withdrawal amount
+        function setAmount(amount) {
+            customAmount.value = amount;
+        }
+        
+        // Process withdrawal
+        function processWithdrawal() {
+            let amount = parseFloat(customAmount.value);
+            
+            if (isNaN(amount) || amount <= 0) {
+                alert('Please enter a valid amount');
+                return;
+            }
+            
+            if (amount > atmState.accountBalance) {
+                alert('Insufficient funds');
+                return;
+            }
+            
+            if (amount % 20 !== 0 && amount % 50 !== 0) {
+                alert('Please enter an amount in multiples of $20 or $50');
+                return;
+            }
+            
+            // Process the withdrawal
+            atmState.transactionAmount = amount;
+            atmState.accountBalance -= amount;
+            
+            // Show dispensed cash
+            noCash.classList.add('hidden');
+            dispensedCash.classList.remove('hidden');
+            dispensedAmount.textContent = amount.toFixed(2);
+            
+            // Generate receipt
+            generateReceipt('withdraw');
+            showReceiptScreen();
+        }
+        
+        // Go to main menu
+        function goToMainMenu() {
+            showMainMenu();
+        }
+        
+        // Generate receipt
+        function generateReceipt(type) {
+            let receiptHTML = '';
+            const date = new Date();
+            
+            if (type === 'withdraw') {
+                receiptHTML = `
+                    <div class="font-bold text-center mb-2">GLOBAL TRUST BANK</div>
+                    <div class="text-center text-xs mb-4">123 Banking Street, Financial City</div>
+                    
+                    <div class="border-b border-gray-400 border-opacity-50 pb-2 mb-2">
+                        <div class="flex justify-between">
+                            <span>ATM ID:</span>
+                            <span>GTB-ATM-042</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Date:</span>
+                            <span>${date.toLocaleDateString()}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Time:</span>
+                            <span>${date.toLocaleTimeString()}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="border-b border-gray-400 border-opacity-50 pb-2 mb-2">
+                        <div class="flex justify-between">
+                            <span>Transaction:</span>
+                            <span>WITHDRAWAL</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Account:</span>
+                            <span>****${atmState.lastFourDigits}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Amount:</span>
+                            <span class="font-bold">$${atmState.transactionAmount.toFixed(2)}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <div class="flex justify-between">
+                            <span>Available Balance:</span>
+                            <span>$${atmState.accountBalance.toFixed(2)}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="text-center text-xs mt-6 text-gray-400">
+                        Thank you for banking with us
+                    </div>
+                `;
+            } else if (type === 'balance') {
+                receiptHTML = `
+                    <div class="font-bold text-center mb-2">GLOBAL TRUST BANK</div>
+                    <div class="text-center text-xs mb-4">123 Banking Street, Financial City</div>
+                    
+                    <div class="border-b border-gray-400 border-opacity-50 pb-2 mb-2">
+                        <div class="flex justify-between">
+                            <span>ATM ID:</span>
+                            <span>GTB-ATM-042</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Date:</span>
+                            <span>${date.toLocaleDateString()}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Time:</span>
+                            <span>${date.toLocaleTimeString()}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="border-b border-gray-400 border-opacity-50 pb-2 mb-2">
+                        <div class="flex justify-between">
+                            <span>Transaction:</span>
+                            <span>BALANCE INQUIRY</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Account:</span>
+                            <span>****${atmState.lastFourDigits}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <div class="flex justify-between">
+                            <span>Available Balance:</span>
+                            <span class="font-bold">$${atmState.accountBalance.toFixed(2)}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="text-center text-xs mt-6 text-gray-400">
+                        Thank you for banking with us
+                    </div>
+                `;
+            }
+            
+            receiptContent.innerHTML = receiptHTML;
+            return receiptHTML;
+        }
+        
+        // Print receipt
+        function printReceipt(type) {
+            if (type === 'balance') {
+                generateReceipt('balance');
+            }
+            
+            noReceipt.classList.add('hidden');
+            receiptPaper.classList.remove('hidden');
+            receiptPaper.innerHTML = receiptContent.innerHTML;
+            
+            // Simulate printing animation
+            setTimeout(() => {
+                receiptPaper.scrollTop = receiptPaper.scrollHeight;
+            }, 100);
+        }
+        
+        // End session
+        function endSession() {
+            // Reset cash display
+            noCash.classList.remove('hidden');
+            dispensedCash.classList.add('hidden');
+            
+            // Reset receipt display
+            noReceipt.classList.remove('hidden');
+            receiptPaper.classList.add('hidden');
+            
+            showMainMenu();
+        }
+    </script>
+</body>
+</html>
